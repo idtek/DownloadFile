@@ -15,13 +15,13 @@ namespace DownloadFileNW
         /// 下载结束时执行该事件，请注意，对Download对象的所有操作请在该事件里或该事件执行之前，
         /// 当该事件执行结束后，该Download对象资源将被释放，此时请不要在访问该Download对象
         /// </summary>
-        public event System.Action Completed;
+        public event System.Action<Download> Completed;
         #endregion
 
         #region 属性
 
         /// <summary>
-        /// 该属性反应了“一段时间”内的平均下载速度,这个“一段时间”的长度取决于你调用该属性的间隔(频率)
+        /// 该属性反应了“一段时间”内的平均下载速度(KB/S),这个“一段时间”的长度取决于你调用该属性的间隔(频率)
         /// </summary>
         public float DownloadSpeed
         {
@@ -181,7 +181,7 @@ namespace DownloadFileNW
         /// </summary>
         /// <param name="url">要下载的文件的URL</param>
         /// <param name="savePath">要将下载文件保存的路径</param>
-        /// <param name="isDelete">如果指定目录下存在同名文件，当该值为true时将删除同名文件，为false时则抛出异常</param>
+        /// <param name="isDelete">如果指定目录下存在同名文件，当该值为true时将删除同名文件，为false时则报错</param>
         /// <param name="httpVerbType">向服务器发起请求的方法，默认为Get</param>
         /// <param name="saveName">下载文件名称,不指定该值时,将根据HttpResponse头信息或URL来决定文件名称</param>
         public Download(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, string saveName = null)
@@ -348,7 +348,7 @@ namespace DownloadFileNW
         {
             if (Completed != null)
             {
-                Completed();
+                Completed(this);
             }
             Dispose();
             UnityWebRequest = null;

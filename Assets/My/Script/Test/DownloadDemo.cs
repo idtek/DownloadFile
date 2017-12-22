@@ -18,16 +18,16 @@ public class DownloadDemo : MonoBehaviour {
         //download2.StartDownload();
     }
 
-    private void Download_Completed()
+    private void Download_Completed(Download d)
     {
         string msg = null;
-        if (download.IsHttpError)
+        if (d.IsHttpError)
         {
-            msg = "Http连接错误,状态码:"+ download.HttpErrorCode+"\n";
+            msg = "Http连接错误,状态码:"+ d.HttpErrorCode+"\n";
         }
-        if (download.IsSystemError)
+        if (d.IsSystemError)
         {
-            msg += "系统错误:" + download.SystemErrorMsg +"\n";
+            msg += "系统错误:" + d.SystemErrorMsg +"\n";
         }
         text.text = msg + "下载完成！用时:" + (Time.time);
     }

@@ -8,7 +8,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{2298A107-9908-D9F8-154C-F04DDD865177}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -51,43 +52,44 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\My\Script\DownloadCore\Download.cs" />
-     <Compile Include="Assets\My\Script\DownloadCore\DownloadManager.cs" />
-     <Compile Include="Assets\My\Script\DownloadCore\FileTools.cs" />
-     <Compile Include="Assets\My\Script\Test\DownloadDemo.cs" />
- <Reference Include="UnityEngine.UI">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.Networking">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.TestRunner">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/TestRunner/UnityEngine.TestRunner.dll</HintPath>
- </Reference>
- <Reference Include="nunit.framework">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/TestRunner/net35/unity-custom/nunit.framework.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.Timeline">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/Timeline/RuntimeEditor/UnityEngine.Timeline.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.UIAutomation">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UIAutomation/UnityEngine.UIAutomation.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.GoogleAudioSpatializer">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnityGoogleAudioSpatializer/RuntimeEditor/UnityEngine.GoogleAudioSpatializer.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.HoloLens">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnityHoloLens/RuntimeEditor/UnityEngine.HoloLens.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.SpatialTracking">
- <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnitySpatialTracking/RuntimeEditor/UnityEngine.SpatialTracking.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.Analytics">
- <HintPath>C:/Users/Star/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@1.0.1/UnityEngine.Analytics.dll</HintPath>
- </Reference>
- <Reference Include="UnityEngine.Purchasing">
- <HintPath>C:/Users/Star/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@1.0.1/UnityEngine.Purchasing.dll</HintPath>
- </Reference>
+    <Compile Include="Assets\My\Script\DownloadCore\Download.cs" />
+    <Compile Include="Assets\My\Script\DownloadCore\DownloadManager.cs" />
+    <Compile Include="Assets\My\Script\DownloadCore\FileTools.cs" />
+    <Compile Include="Assets\My\Script\Test\DownloadDemo.cs" />
+    <Compile Include="Assets\My\Script\Test\DownloadManagerDemo.cs" />
+    <Reference Include="UnityEngine.UI">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Networking">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TestRunner">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/TestRunner/UnityEngine.TestRunner.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/TestRunner/net35/unity-custom/nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Timeline">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/Timeline/RuntimeEditor/UnityEngine.Timeline.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIAutomation">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UIAutomation/UnityEngine.UIAutomation.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.GoogleAudioSpatializer">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnityGoogleAudioSpatializer/RuntimeEditor/UnityEngine.GoogleAudioSpatializer.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.HoloLens">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnityHoloLens/RuntimeEditor/UnityEngine.HoloLens.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SpatialTracking">
+      <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/UnitySpatialTracking/RuntimeEditor/UnityEngine.SpatialTracking.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Analytics">
+      <HintPath>C:/Users/Star/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@1.0.1/UnityEngine.Analytics.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Purchasing">
+      <HintPath>C:/Users/Star/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@1.0.1/UnityEngine.Purchasing.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -97,5 +99,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  
 </Project>
