@@ -128,6 +128,11 @@ namespace DownloadFileNW
             }
         }
 
+        /// <summary>
+        /// 将指定路径的文件重命名
+        /// </summary>
+        /// <param name="path">文件的路径</param>
+        /// <param name="newName">文件新名称</param>
         public static void RenameFile(string path,string newName)
         {
             try
@@ -139,6 +144,106 @@ namespace DownloadFileNW
                 Debug.LogError(e.Message);
                 throw e;
             }
+        }
+
+        /// <summary>
+        /// 使用UTF8编码方式从文件读取内容
+        /// </summary>
+        /// <param name="path">要读取的文件的路径</param>
+        /// <returns>返回读取的内容</returns>
+        public static string ReadFileUTf8(string path)
+        {
+            FileStream stream=null;
+            try
+            {
+                stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+                string ret = null;
+                byte[] buffer = new byte[1024];
+                int len = 0;
+                while ((len = stream.Read(buffer, 0, buffer.Length)) != 0)
+                {
+                    if (ret == null)
+                    {
+                        ret = System.Text.Encoding.UTF8.GetString(buffer, 0, len);
+                    }
+                    else
+                    {
+                        ret += System.Text.Encoding.UTF8.GetString(buffer, 0, len);
+                    }
+                }
+                return ret;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.Message);
+                throw e;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Dispose();
+                }
+            }
+            
+        }
+
+        /// <summary>
+        /// 用UTF8的方式往文件里面写入内容,如果制定路径已经存在该文件,则会覆盖该文件
+        /// </summary>
+        /// <param name="path">要写入的文件的路径</param>
+        /// <param name="content">要写入的内容</param>
+        public static void WriteFileUtf8Create(string path, string content)
+        {
+            FileStream stream = null;
+            try
+            {
+                stream = new FileStream(path, FileMode.Create, FileAccess.Write);
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(content);
+                stream.Write(buffer, 0, buffer.Length);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.Message);
+                throw e;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Flush();
+                    stream.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 以字节的形式往文件中写入数据,文件已经存在时,将在文件尾部追加数据
+        /// </summary>
+        /// <param name="path">文件的路径</param>
+        /// <param name="content">要写入的数据</param>
+        public static void WriteFileBytesAppend(string path, byte[] content)
+        {
+            FileStream stream=null;
+            try
+            {
+                stream = new FileStream(path, FileMode.Append, FileAccess.Write);
+                stream.Write(content, 0, content.Length);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.Message);
+                throw e;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Flush();
+                    stream.Close();
+                }
+            }
+
         }
     }
 }
