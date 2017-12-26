@@ -18,7 +18,7 @@ namespace DownloadFileNW
         private int CurDonwloadCount = 0;
         private int id = 0;
         private bool isRange = true;
-        private event System.Action<int> Completed;
+        private Dictionary<int,System.Action<int>> Completeds;
         #endregion
 
         #region 属性
@@ -63,6 +63,7 @@ namespace DownloadFileNW
             UrlAndName = new Dictionary<int, string[]>();
             Errors = new Dictionary<int, string>();
             DownloadQueue = new Dictionary<int, DownloadStatus>();
+            Completeds = new Dictionary<int, System.Action<int>>();
         }
         #endregion
 
@@ -81,9 +82,9 @@ namespace DownloadFileNW
             id++;
             Download download = new Download(url, savePath, isDelete, httpVerbType, saveName);
             download.Completed += DownloadCompletedError;
-            if (completed!=null)
+            if (completed != null)
             {
-                Completed += completed;
+                Completeds[id] = completed;
                 download.Completed += UserCompleted;
             }
             download.Completed += DownloadCompletedClean;
@@ -224,6 +225,8 @@ namespace DownloadFileNW
                 {
                     DownloadQueue[id] = DownloadStatus.Pause;
                     Downloads[id].PauseSwitch(on);
+                    CurDonwloadCount--;
+                    CheckDownloadQueue();
                 }
                 if (DownloadQueue[id] == DownloadStatus.Pause && !on)
                 {
@@ -302,11 +305,9 @@ namespace DownloadFileNW
         /// <param name="download"></param>
         private void UserCompleted(Download download)
         {
-            if (Completed != null)
-            {
-                int id = GetID(download);
-                Completed(id);
-            }
+            int id = GetID(download);
+            Completeds[id](id);
+            Completeds.Remove(id);
         }
 
         /// <summary>

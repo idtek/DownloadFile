@@ -15,6 +15,7 @@ public class ButtonEvent : MonoBehaviour {
         {
             isStart = true;
             DownloadManagerHelper.GetDonwloadManager().StartDownload(id);
+            transform.Find("Text").GetComponent<Text>().text = "暂停";
             return;
         }
         if (isPause)

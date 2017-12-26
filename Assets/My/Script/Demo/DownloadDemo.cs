@@ -34,7 +34,6 @@ public class DownloadDemo : MonoBehaviour {
 
     void completed(int id)
     {
-        Debug.Log(id);
         string msg = DownloadManagerHelper.GetDonwloadManager().GetErrorMsg(id);
         if (msg == null)
         {
@@ -73,7 +72,7 @@ public class DownloadDemo : MonoBehaviour {
                         item.Value.transform.Find("Text").Find("Speed").GetComponent<Text>().text = "暂停中...";
                         break;
                     case DownloadStatus.PauseWaiting:
-                        item.Value.transform.Find("Text").Find("Speed").GetComponent<Text>().text = "等待下载中...";
+                        item.Value.transform.Find("Text").Find("Speed").GetComponent<Text>().text = "暂停等待中...";
                         break;
                     default:
                         break;

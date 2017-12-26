@@ -39,7 +39,7 @@ namespace DownloadFileNW
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
+                Debug.LogError(e.Message);
                 throw e;
             }
         }
@@ -57,7 +57,7 @@ namespace DownloadFileNW
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
+                Debug.LogError(e.Message);
                 throw e;
             }
         }
@@ -70,7 +70,7 @@ namespace DownloadFileNW
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
+                Debug.LogError(e.Message);
                 throw e;
             }
         }
