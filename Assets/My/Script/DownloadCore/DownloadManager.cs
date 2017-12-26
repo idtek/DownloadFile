@@ -1,21 +1,58 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace DownloadFileNW
 {
-    public class DownloadManager : MonoBehaviour
+    public class DownloadManager
     {
         Dictionary<int, Download> Downloads;//保存对Download对象的引用
         Dictionary<int, string[]> UrlAndName;//保存正在下载的Url,下载地址,名字
         Dictionary<int, string> Errors;//保存下载已经完成的，但是出现错误的Download对象的错误信息
-        int Id = 0;
+        Dictionary<int,bool> DownloadQueue;//下载队列
+        private int MaxCount = 5;
+        private int CurDonwloadCount = 0;
+        private int Id = 0;
+        private bool isRange = true;
 
-        void Awake()
+        /// <summary>
+        /// 最大下载数量,默认为5
+        /// </summary>
+        public int MaxDownloadCount
+        {
+            get
+            {
+                return MaxCount;
+            }
+
+            set
+            {
+                MaxCount = value;
+                CheckDownloadQueue();
+            }
+        }
+
+        /// <summary>
+        /// 是否启用断点续传,默认为true
+        /// </summary>
+        public bool IsRange
+        {
+            get
+            {
+                return isRange;
+            }
+
+            set
+            {
+                isRange = value;
+            }
+        }
+
+        public DownloadManager()
         {
             Downloads = new Dictionary<int, Download>();
             UrlAndName = new Dictionary<int, string[]>();
             Errors = new Dictionary<int, string>();
+            DownloadQueue = new Dictionary<int, bool>();
         }
 
         /// <summary>
@@ -61,9 +98,11 @@ namespace DownloadFileNW
                 download.Completed += completed;
             }
             download.Completed += DownloadCompletedClean;
-            download.StartDownload();
+
             Downloads.Add(Id, download);
             UrlAndName.Add(Id, new string[3] { url,savePath,saveName});
+            DownloadQueue.Add(Id, false);
+            CheckDownloadQueue();//每次添加下载就检测是否有空置的下载位置
             return Id;
         }
 
@@ -155,6 +194,65 @@ namespace DownloadFileNW
         }
 
         /// <summary>
+        /// 停止指定ID所对应的下载器的下载任务(包括未开始但存在下载列表中的)
+        /// </summary>
+        /// <param name="id">指定ID</param>
+        public void AbortDownload(int id)
+        {
+            if (DownloadQueue.ContainsKey(id))
+            {
+                if (DownloadQueue[id] == false)
+                {
+                    Downloads.Remove(id);
+                    UrlAndName.Remove(id);
+                    DownloadQueue.Remove(id);
+                }
+                else
+                {
+                    Downloads[id].Abort();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 停止所有下载任务(包括未开始但存在下载列表中的)
+        /// </summary>
+        public void AbortAllDownload()
+        {
+            List<int> downloading = new List<int>();
+            List<int> downloadWait = new List<int>();
+            foreach (var item in DownloadQueue)
+            {
+                if (item.Value)
+                {
+                    downloading.Add(item.Key);
+                }
+                else
+                {
+                    downloadWait.Add(item.Key);
+                }
+            }
+            foreach (var item in downloadWait)
+            {
+                AbortDownload(item);
+            }
+            foreach (var item in downloading)
+            {
+                AbortDownload(item);
+            }
+        }
+
+        /// <summary>
+        /// 判断指定ID的下载器是否存在下载列表中
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool InDownloadQueue(int id)
+        {
+            return DownloadQueue.ContainsKey(id);
+        }
+
+        /// <summary>
         /// 下载结束后进行错误处理
         /// </summary>
         /// <param name="download"></param>
@@ -182,9 +280,40 @@ namespace DownloadFileNW
         /// <param name="download"></param>
         private void DownloadCompletedClean(Download download)
         {
-            int count = GetID(download);
-            Downloads.Remove(count);
-            UrlAndName.Remove(count);
+            int id = GetID(download);
+            Downloads.Remove(id);
+            UrlAndName.Remove(id);
+            DownloadQueue.Remove(id);
+            CurDonwloadCount--;
+            CheckDownloadQueue();//下载完成后检测下载列表中是否有未开始的下载任务
+        }
+
+        /// <summary>
+        /// 如果当前下载列表中有还未开始的下载任务,且还有空置的下载位置则启动新的下载
+        /// </summary>
+        private void CheckDownloadQueue()
+        {
+            if (CurDonwloadCount != DownloadQueue.Count && CurDonwloadCount < MaxDownloadCount)
+            {
+                List<int> needDownloadId = new List<int>();
+                foreach (var item in DownloadQueue)
+                {
+                    if (!item.Value)
+                    {
+                        CurDonwloadCount++;
+                        needDownloadId.Add(item.Key);
+                        if (CurDonwloadCount >= MaxDownloadCount)
+                        {
+                            break;
+                        }
+                    }
+                }
+                foreach (var item in needDownloadId)
+                {
+                    DownloadQueue[item] = true;
+                    Downloads[item].StartDownload(IsRange);
+                }
+            }
         }
     }
 }

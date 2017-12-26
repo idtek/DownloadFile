@@ -45,7 +45,7 @@ namespace DownloadFileNW
                 LastDataSize = nowDataSize;
                 LastTime = nowTime;
                 LastSpeed = speed;
-                return speed;
+                return ((int)(speed * 100))/100;
             }
         }
 
@@ -59,6 +59,10 @@ namespace DownloadFileNW
                 if (IsDone)
                 {
                     return 1.0f;
+                }
+                if (UnityWebRequest.downloadProgress < 0)
+                {
+                    return 0;
                 }
                 return UnityWebRequest.downloadProgress;
             }
@@ -225,12 +229,14 @@ namespace DownloadFileNW
         /// <summary>
         /// 开始下载文件
         /// </summary>
-        public void StartDownload()
+        /// <param name="isRange">是否采用断点续传的方式进行下载</param>
+        public void StartDownload(bool isRange = true)
         {
             if (IsDone)
             {
                 return;
             }
+            IsRange = isRange;
             //如果下载目录不存在，则创建目录及其父目录
             if (!FileTools.DirectoryExists(SavePath))
             {
@@ -241,10 +247,20 @@ namespace DownloadFileNW
             TempFilePath += ".temp";
             //Note:这里可能会抛出ArgumentException: Failed to create file,通常意味着你试图开着两个Download将同一个
             //文件下载到同一个路径下，它们的名字冲突所引起的
-            DownloadHandlerFile downloadHandlerFile = null;
+            DownloadHandler downloadHandler = null;
             try
             {
-                downloadHandlerFile = new DownloadHandlerFile(TempFilePath);
+                if (IsRange)
+                {
+                    DownloadHandlerRange = new DownloadHandlerRange(TempFilePath, UnityWebRequest);
+                    downloadHandler = DownloadHandlerRange;
+                }
+                else
+                {
+                    DownloadHandlerFile downloadHandlerFile = new DownloadHandlerFile(TempFilePath);
+                    downloadHandlerFile.removeFileOnAbort = true;
+                    downloadHandler = downloadHandlerFile; ;
+                }
             }
             catch (System.ArgumentException e)
             {
@@ -257,8 +273,7 @@ namespace DownloadFileNW
                 CompletedFinally();
                 return;
             }
-            downloadHandlerFile.removeFileOnAbort = true;
-            UnityWebRequest.downloadHandler = downloadHandlerFile;
+            UnityWebRequest.downloadHandler = downloadHandler;
             UnityWebRequest.SendWebRequest().completed += Download_completed;
             LastDataSize = 0;
             LastTime = Time.time;
@@ -294,6 +309,8 @@ namespace DownloadFileNW
         private string systemErrorMsg = "";//系统错误时的消息
         private bool isHttpError = false;//是否有Http连接错误
         private long httpErrorCode = -1;//出现Http错误时，该值代表着Http状态码
+        private bool IsRange = true;//是否采用断点续传
+        private DownloadHandlerRange DownloadHandlerRange = null;
         private ulong LastDataSize;//以下用来某段时间的平均下载速度
         private float LastTime;
         private float LastSpeed;
@@ -351,9 +368,16 @@ namespace DownloadFileNW
                 Completed(this);
             }
             Dispose();
+            if (DownloadHandlerRange != null)
+            {
+                DownloadHandlerRange.Dispose();
+            }
             UnityWebRequest = null;
             IsDone = true;
-            FileTools.DeleteFile(TempFilePath);
+            if (!IsRange)
+            {
+                FileTools.DeleteFile(TempFilePath);
+            }
         }
 
         /// <summary>

@@ -13,7 +13,8 @@ public class DownloadManagerDemo : MonoBehaviour {
 
     void Awake()
     {
-        downloadManager = this.gameObject.GetComponent<DownloadManager>();
+        downloadManager = DownloadManagerHelper.GetDonwloadManager();
+        downloadManager.MaxDownloadCount = 2;
         IDs = new List<int>();
     }
 
@@ -49,11 +50,27 @@ public class DownloadManagerDemo : MonoBehaviour {
             lastTime = Time.time;
             foreach (var item in IDs)
             {
-                if (!downloadManager.IsDone(item))
+                if (downloadManager.InDownloadQueue(item))
                 {
-                    text[item-1].text = "  ID:" + item + "    下载速度:" + downloadManager.DownloadSpeed(item) + "KB/S 下载进度:" + downloadManager.PercentageProgress(item);
+                    if (!downloadManager.IsDone(item))
+                    {
+                        text[item - 1].text = "  ID:" + item + "    下载速度:" + downloadManager.DownloadSpeed(item) + "KB/S 下载进度:" + downloadManager.PercentageProgress(item);
+                    }
                 }
+                else
+                {
+                    text[item - 1].text = "  ID:" + item + "    下载空闲中";
+                }
+                
             }
+        }
+        if (Input.GetMouseButtonDown(0))
+        {
+            downloadManager.MaxDownloadCount = 5;
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            downloadManager.AbortAllDownload();
         }
 	}
 }

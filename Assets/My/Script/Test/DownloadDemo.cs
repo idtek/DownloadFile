@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using DownloadFileNW;
+using System.Collections.Generic;
 
 public class DownloadDemo : MonoBehaviour {
     public Text text;
