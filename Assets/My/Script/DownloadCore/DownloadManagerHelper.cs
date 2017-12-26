@@ -1,29 +1,29 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using DownloadFileNW;
-
-public class DownloadManagerHelper {
-    private static DownloadManager DownloadManager=null;
-    public static int MaxDownloadCount
+﻿
+namespace DownloadFileNW
+{
+    public class DownloadManagerHelper
     {
-        get
+        private static DownloadManager DownloadManager = null;
+        public static int MaxDownloadCount
         {
-            return DownloadManager.MaxDownloadCount;
+            get
+            {
+                return DownloadManager.MaxDownloadCount;
+            }
+            set
+            {
+                DownloadManager.MaxDownloadCount = value;
+            }
         }
-        set
-        {
-            DownloadManager.MaxDownloadCount = value;
-        }
-    }
 
-    public static DownloadManager GetDonwloadManager()
-    {
-        if (DownloadManager == null)
+        public static DownloadManager GetDonwloadManager()
         {
-            DownloadManager = new DownloadManager();
+            if (DownloadManager == null)
+            {
+                DownloadManager = new DownloadManager();
+            }
+            return DownloadManager;
         }
-        return DownloadManager;
-    }
 
+    }
 }

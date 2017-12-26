@@ -3,17 +3,25 @@ using UnityEngine;
 
 namespace DownloadFileNW
 {
+    /// <summary>
+    /// Downloading:下载中(正在下载) Waiting:等待中(即将开始下载,但是下载位置不够) Queue:队列中(还没开始的任务) Pause(暂停的任务) PauseWait(暂停的任务重新开始下载,但是下载位置不够)
+    /// </summary>
+    public enum DownloadStatus { Downloading,Waiting, Queue,Pause,PauseWaiting}
     public class DownloadManager
     {
-        Dictionary<int, Download> Downloads;//保存对Download对象的引用
-        Dictionary<int, string[]> UrlAndName;//保存正在下载的Url,下载地址,名字
-        Dictionary<int, string> Errors;//保存下载已经完成的，但是出现错误的Download对象的错误信息
-        Dictionary<int,bool> DownloadQueue;//下载队列
+        #region 私有字段
+        private Dictionary<int, Download> Downloads;//保存对Download对象的引用
+        private Dictionary<int, string[]> UrlAndName;//保存正在下载的Url,下载地址,名字
+        private Dictionary<int, string> Errors;//保存下载已经完成的，但是出现错误的Download对象的错误信息
+        private Dictionary<int, DownloadStatus> DownloadQueue;//下载队列
         private int MaxCount = 5;
         private int CurDonwloadCount = 0;
-        private int Id = 0;
+        private int id = 0;
         private bool isRange = true;
+        private event System.Action<int> Completed;
+        #endregion
 
+        #region 属性
         /// <summary>
         /// 最大下载数量,默认为5
         /// </summary>
@@ -46,17 +54,20 @@ namespace DownloadFileNW
                 isRange = value;
             }
         }
+        #endregion
 
+        #region 构造方法
         public DownloadManager()
         {
             Downloads = new Dictionary<int, Download>();
             UrlAndName = new Dictionary<int, string[]>();
             Errors = new Dictionary<int, string>();
-            DownloadQueue = new Dictionary<int, bool>();
+            DownloadQueue = new Dictionary<int, DownloadStatus>();
         }
+        #endregion
 
         /// <summary>
-        /// 添加一项下载任务到下载管理器中
+        /// 添加一项下载任务到下载管理器中,该下载任务将处于队列中状态,调用StartDownload将变为等待中
         /// </summary>
         /// <param name="url">要下载的文件的URL</param>
         /// <param name="savePath">要下载文件保存的路径</param>
@@ -65,122 +76,81 @@ namespace DownloadFileNW
         /// <param name="completed">完成下载后回调事件</param>
         /// <param name="saveName">下载文件名称,不指定该值时,将根据HttpResponse头信息或URL来决定文件名称</param>
         /// <returns>返回该下载任务的ID号</returns>
-        public int AddDownload(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, System.Action<Download> completed = null, string saveName = null)
+        public int AddDownload(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, System.Action<int> completed = null, string saveName = null)
         {
-            Id++;
-            foreach (var item in UrlAndName)
-            {
-                if (saveName == null)
-                {
-                    if (item.Value[0] == url && item.Value[1] == savePath)
-                    {
-                        string msg = "该文件已经在下载了，请勿重复下载";
-                        Debug.LogError(msg);
-                        Errors.Add(Id, msg);
-                        return Id;
-                    }
-                }
-                else
-                {
-                    if (item.Value[2] == saveName && item.Value[1] == savePath)
-                    {
-                        string msg = "该文件已经在下载了，请勿重复下载";
-                        Debug.LogError(msg);
-                        Errors.Add(Id, msg);
-                        return Id;
-                    }
-                }
-            }
+            id++;
             Download download = new Download(url, savePath, isDelete, httpVerbType, saveName);
             download.Completed += DownloadCompletedError;
             if (completed!=null)
             {
-                download.Completed += completed;
+                Completed += completed;
+                download.Completed += UserCompleted;
             }
             download.Completed += DownloadCompletedClean;
 
-            Downloads.Add(Id, download);
-            UrlAndName.Add(Id, new string[3] { url,savePath,saveName});
-            DownloadQueue.Add(Id, false);
-            CheckDownloadQueue();//每次添加下载就检测是否有空置的下载位置
-            return Id;
+            Downloads.Add(id, download);
+            UrlAndName.Add(id, new string[3] { url,savePath,saveName});
+            DownloadQueue.Add(id, DownloadStatus.Queue);
+            return id;
         }
 
         /// <summary>
-        /// 获取指定ID的下载器的下载速度
+        /// 将指定ID的下载任务的状态由Queue变为Waiting
+        /// </summary>
+        /// <param name="id"></param>
+        public void StartDownload(int id)
+        {
+            if (InDownloadQueue(id) && DownloadQueue[id]==DownloadStatus.Queue)
+            {
+                DownloadQueue[id] = DownloadStatus.Waiting;
+                CheckDownloadQueue();
+            }
+        }
+
+        /// <summary>
+        /// 获取指定ID的下载任务的下载速度
         /// </summary>
         /// <param name="id">ID值</param>
-        /// <returns>下载速度，如果指定ID对应的下载器不存在时返回0</returns>
+        /// <returns>下载速度，如果指定ID对应的下载器不存在时返回-1</returns>
         public float DownloadSpeed(int id)
         {
-            if (Downloads.ContainsKey(id))
+            if (InDownloadQueue(id))
             {
                 return Downloads[id].DownloadSpeed;
             }
-            return 0;
+            return -1;
         }
 
         /// <summary>
-        /// 获取指定ID的下载器的下载进度，进度[0,1]之间的一个数
+        /// 获取指定ID的下载任务的下载进度，进度[0,1]之间的一个数
         /// </summary>
         /// <param name="ID">ID值</param>
-        /// <returns>下载进度，如果指定ID对应的下载器不存在时返回1</returns>
+        /// <returns>下载进度，如果指定ID对应的下载器不存在时返回-1</returns>
         public float DecimalProgress(int id)
         {
-            if (Downloads.ContainsKey(id))
+            if (InDownloadQueue(id))
             {
                 return Downloads[id].DecimalProgress;
             }
-            return 1;
+            return -1;
         }
 
         /// <summary>
         /// 百分比进度，格式:00.00%
         /// </summary>
         /// <param name="id">ID值</param>
-        /// <returns>下载进度，如果指定ID对应的下载器不存在时返回100.00%</returns>
+        /// <returns>下载进度，如果指定ID对应的下载器不存在时返回null</returns>
         public string PercentageProgress(int id)
         {
-            if (Downloads.ContainsKey(id))
+            if (InDownloadQueue(id))
             {
                 return Downloads[id].PercentageProgress;
             }
-            return "100.00%";
+            return null;
         }
 
         /// <summary>
-        /// 判断指定ID对应的下载器是否下载完成
-        /// </summary>
-        /// <param name="id">ID值</param>
-        /// <returns>完成返回true,如果没有找到对应下载器也返回true</returns>
-        public bool IsDone(int id)
-        {
-            if (Downloads.ContainsKey(id))
-            {
-                return Downloads[id].IsDone;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// 根据Download对象得到对应的ID值，返回0，代表没有找到
-        /// </summary>
-        /// <param name="download">Download对象</param>
-        /// <returns>ID值</returns>
-        public int GetID(Download download)
-        {
-            foreach (var item in Downloads)
-            {
-                if (item.Value == download)
-                {
-                    return item.Key;
-                }
-            }
-            return 0;
-        }
-
-        /// <summary>
-        /// 得到对应ID的下载器下载错误信息
+        /// 得到对应ID的下载任务下载错误信息,没有错误返回null
         /// </summary>
         /// <param name="id">ID值</param>
         /// <returns>返回错误信息，如果没有错误则返回Null</returns>
@@ -194,36 +164,36 @@ namespace DownloadFileNW
         }
 
         /// <summary>
-        /// 停止指定ID所对应的下载器的下载任务(包括未开始但存在下载列表中的)
+        /// 删除指定ID所对应的下载任务(包括未开始但存在下载列表中的)
         /// </summary>
         /// <param name="id">指定ID</param>
-        public void AbortDownload(int id)
+        public void DeleteDownload(int id)
         {
-            if (DownloadQueue.ContainsKey(id))
+            if (InDownloadQueue(id))
             {
-                if (DownloadQueue[id] == false)
+                if (DownloadQueue[id] == DownloadStatus.Downloading)
+                {
+                    Downloads[id].Abort();
+                }
+                else
                 {
                     Downloads.Remove(id);
                     UrlAndName.Remove(id);
                     DownloadQueue.Remove(id);
                 }
-                else
-                {
-                    Downloads[id].Abort();
-                }
             }
         }
 
         /// <summary>
-        /// 停止所有下载任务(包括未开始但存在下载列表中的)
+        /// 删除所有下载任务(包括未开始但存在下载列表中的)
         /// </summary>
-        public void AbortAllDownload()
+        public void DeleteAllDownload()
         {
             List<int> downloading = new List<int>();
             List<int> downloadWait = new List<int>();
             foreach (var item in DownloadQueue)
             {
-                if (item.Value)
+                if (item.Value == DownloadStatus.Downloading)
                 {
                     downloading.Add(item.Key);
                 }
@@ -234,22 +204,74 @@ namespace DownloadFileNW
             }
             foreach (var item in downloadWait)
             {
-                AbortDownload(item);
+                DeleteDownload(item);
             }
             foreach (var item in downloading)
             {
-                AbortDownload(item);
+                DeleteDownload(item);
             }
         }
 
         /// <summary>
-        /// 判断指定ID的下载器是否存在下载列表中
+        /// 暂停开关,传入true将暂停下载,传入false将继续下载
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public bool InDownloadQueue(int id)
+        /// <param name="on">true暂停,false继续下载</param>
+        public void PauseDownload(int id , bool on)
+        {
+            if (InDownloadQueue(id))
+            {
+                if (DownloadQueue[id] == DownloadStatus.Downloading && on)
+                {
+                    DownloadQueue[id] = DownloadStatus.Pause;
+                    Downloads[id].PauseSwitch(on);
+                }
+                if (DownloadQueue[id] == DownloadStatus.Pause && !on)
+                {
+                    DownloadQueue[id] = DownloadStatus.PauseWaiting;
+                    CheckDownloadQueue();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获得指定ID下载下载任务的状态,下载中,等待中,队列中,暂停中,暂停等待中
+        /// </summary>
+        /// <param name="id">指定的ID</param>
+        /// <returns>DownloadStatus,指定ID不存在时返回-1</returns>
+        public DownloadStatus Status(int id)
+        {
+            if (InDownloadQueue(id))
+            {
+                return DownloadQueue[id];
+            }
+            return (DownloadStatus) (-1);
+        }
+
+        /// <summary>
+        /// 判断指定ID的下载任务是否存在下载列表中
+        /// </summary>
+        /// <param name="id">指定的ID</param>
+        /// <returns>存在返回true,不存在返回false</returns>
+        private bool InDownloadQueue(int id)
         {
             return DownloadQueue.ContainsKey(id);
+        }
+
+        /// <summary>
+        /// 根据Download对象得到对应的ID值，返回-1，代表没有找到
+        /// </summary>
+        /// <param name="download">Download对象</param>
+        /// <returns>ID值</returns>
+        private int GetID(Download download)
+        {
+            foreach (var item in Downloads)
+            {
+                if (item.Value == download)
+                {
+                    return item.Key;
+                }
+            }
+            return -1;
         }
 
         /// <summary>
@@ -275,7 +297,20 @@ namespace DownloadFileNW
         }
 
         /// <summary>
-        /// 下载结束后进行资源清理
+        /// 下载结束后对调用者进行回调
+        /// </summary>
+        /// <param name="download"></param>
+        private void UserCompleted(Download download)
+        {
+            if (Completed != null)
+            {
+                int id = GetID(download);
+                Completed(id);
+            }
+        }
+
+        /// <summary>
+        /// 下载结束最后进行资源清理
         /// </summary>
         /// <param name="download"></param>
         private void DownloadCompletedClean(Download download)
@@ -298,7 +333,7 @@ namespace DownloadFileNW
                 List<int> needDownloadId = new List<int>();
                 foreach (var item in DownloadQueue)
                 {
-                    if (!item.Value)
+                    if (item.Value==DownloadStatus.Waiting || item.Value==DownloadStatus.PauseWaiting)
                     {
                         CurDonwloadCount++;
                         needDownloadId.Add(item.Key);
@@ -310,8 +345,16 @@ namespace DownloadFileNW
                 }
                 foreach (var item in needDownloadId)
                 {
-                    DownloadQueue[item] = true;
-                    Downloads[item].StartDownload(IsRange);
+                    if (DownloadQueue[item] == DownloadStatus.Waiting)
+                    {
+                        DownloadQueue[item] = DownloadStatus.Downloading;
+                        Downloads[item].StartDownload(IsRange);
+                    }
+                    else if (DownloadQueue[item] == DownloadStatus.PauseWaiting)
+                    {
+                        DownloadQueue[item] = DownloadStatus.Downloading;
+                        Downloads[item].PauseSwitch(false);
+                    }
                 }
             }
         }

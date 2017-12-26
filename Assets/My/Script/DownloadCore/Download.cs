@@ -27,7 +27,7 @@ namespace DownloadFileNW
         {
             get
             {
-                if (IsDone)
+                if (IsDone || IsPause)
                 {
                     return 0;
                 }
@@ -56,7 +56,7 @@ namespace DownloadFileNW
         {
             get
             {
-                if (IsDone)
+                if (IsDone || IsPause)
                 {
                     return 1.0f;
                 }
@@ -88,7 +88,7 @@ namespace DownloadFileNW
         {
             get
             {
-                if (IsDone)
+                if (IsDone || IsPause)
                 {
                     return null;
                 }
@@ -176,6 +176,22 @@ namespace DownloadFileNW
             }
         }
 
+        /// <summary>
+        /// 当前下载是否处于暂停状态,暂停为true
+        /// </summary>
+        public bool IsPause
+        {
+            get
+            {
+                return isPause;
+            }
+
+            private set
+            {
+                isPause = value;
+            }
+        }
+
         #endregion
 
         #region 构造方法
@@ -195,31 +211,29 @@ namespace DownloadFileNW
             SaveName = saveName;
             IsDelete = isDelete;
             HttpVerbType = httpVerbType;
-            string method = null;
             switch (httpVerbType)
             {
                 case HttpVerbType.kHttpVerbCREATE:
-                    method = UnityWebRequest.kHttpVerbCREATE;
+                    Method = UnityWebRequest.kHttpVerbCREATE;
                     break;
                 case HttpVerbType.kHttpVerbDELETE:
-                    method = UnityWebRequest.kHttpVerbDELETE;
+                    Method = UnityWebRequest.kHttpVerbDELETE;
                     break;
                 case HttpVerbType.kHttpVerbGET:
-                    method = UnityWebRequest.kHttpVerbGET;
+                    Method = UnityWebRequest.kHttpVerbGET;
                     break;
                 case HttpVerbType.kHttpVerbHEAD:
-                    method = UnityWebRequest.kHttpVerbHEAD;
+                    Method = UnityWebRequest.kHttpVerbHEAD;
                     break;
                 case HttpVerbType.kHttpVerbPOST:
-                    method = UnityWebRequest.kHttpVerbPOST;
+                    Method = UnityWebRequest.kHttpVerbPOST;
                     break;
                 case HttpVerbType.kHttpVerbPUT:
-                    method = UnityWebRequest.kHttpVerbPUT;
+                    Method = UnityWebRequest.kHttpVerbPUT;
                     break;
                 default:
                     break;
             }
-            UnityWebRequest = new UnityWebRequest(URL, method);
         }
 
         #endregion
@@ -236,6 +250,7 @@ namespace DownloadFileNW
             {
                 return;
             }
+            UnityWebRequest = new UnityWebRequest(URL, Method);
             IsRange = isRange;
             //如果下载目录不存在，则创建目录及其父目录
             if (!FileTools.DirectoryExists(SavePath))
@@ -273,11 +288,40 @@ namespace DownloadFileNW
                 CompletedFinally();
                 return;
             }
+            catch (System.IO.IOException e)
+            {
+                Debug.LogError(e.Message);
+                if (!IsSystemError)
+                {
+                    IsSystemError = true;
+                    SystemErrorMsg = "文件名冲突,指定路径的临时文件正在被其他程序占用";
+                }
+                CompletedFinally();
+                return;
+            }
             UnityWebRequest.downloadHandler = downloadHandler;
             UnityWebRequest.SendWebRequest().completed += Download_completed;
             LastDataSize = 0;
             LastTime = Time.time;
             LastSpeed = 0.0f;
+        }
+
+        /// <summary>
+        /// 暂停开关,传入true将暂停下载,传入false将继续下载
+        /// </summary>
+        /// <param name="on">true暂停,false继续下载</param>
+        public void PauseSwitch(bool on)
+        {
+            if (!IsPause && on)
+            {
+                IsPause = on;
+                Abort();
+            }
+            else if(IsPause && !on)
+            {
+                IsPause = on;
+                StartDownload(IsRange);
+            }
         }
 
         /// <summary>
@@ -310,7 +354,9 @@ namespace DownloadFileNW
         private bool isHttpError = false;//是否有Http连接错误
         private long httpErrorCode = -1;//出现Http错误时，该值代表着Http状态码
         private bool IsRange = true;//是否采用断点续传
+        private string Method;
         private DownloadHandlerRange DownloadHandlerRange = null;
+        private bool isPause = false;
         private ulong LastDataSize;//以下用来某段时间的平均下载速度
         private float LastTime;
         private float LastSpeed;
@@ -328,34 +374,32 @@ namespace DownloadFileNW
             bool isError = false;
             try
             {
-                if (UnityWebRequest.isHttpError)
+                if (!IsPause)
                 {
-                    isError = true;
-                    Debug.LogError("下载失败,Http错误,错误码:" + UnityWebRequest.responseCode.ToString());
-                    IsHttpError = true;
-                    HttpErrorCode = UnityWebRequest.responseCode;
-                }
-                if (UnityWebRequest.isNetworkError)
-                {
-                    isError = true;
-                    Debug.LogError("下载失败,系统错误,错误信息:" + UnityWebRequest.error);
-                    IsSystemError = true;
-                    SystemErrorMsg = UnityWebRequest.error;
-                }
-                if (isError)
-                {
-                    return;
+                    if (UnityWebRequest.isHttpError)
+                    {
+                        isError = true;
+                        Debug.LogError("下载失败,Http错误,错误码:" + UnityWebRequest.responseCode.ToString());
+                        IsHttpError = true;
+                        HttpErrorCode = UnityWebRequest.responseCode;
+                    }
+                    if (UnityWebRequest.isNetworkError)
+                    {
+                        isError = true;
+                        Debug.LogError("下载失败,系统错误,错误信息:" + UnityWebRequest.error);
+                        IsSystemError = true;
+                        SystemErrorMsg = UnityWebRequest.error;
+                    }
                 }
             }
             finally
             {
-                if (!isError)
+                if (!isError && !IsPause)
                 {
                     RenameFile();
                 }
                 CompletedFinally();
             }
-
         }
 
         /// <summary>
@@ -363,7 +407,7 @@ namespace DownloadFileNW
         /// </summary>
         private void CompletedFinally()
         {
-            if (Completed != null)
+            if (Completed != null && !IsPause)
             {
                 Completed(this);
             }
@@ -373,7 +417,11 @@ namespace DownloadFileNW
                 DownloadHandlerRange.Dispose();
             }
             UnityWebRequest = null;
-            IsDone = true;
+            DownloadHandlerRange = null;
+            if (!IsPause)
+            {
+                IsDone = true;
+            }
             if (!IsRange)
             {
                 FileTools.DeleteFile(TempFilePath);

@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/My/Scene/Test.unity
+- path: Assets/My/Scene/DownloadManagerUI.unity
   isLoaded: 1
   isActive: 1

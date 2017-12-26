@@ -51,18 +51,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\My\Script\Data\AssetBundleInfo.cs" />
-     <Compile Include="Assets\My\Script\Data\JsonTools.cs" />
-     <Compile Include="Assets\My\Script\Data\LocalAssetBundleInfo.cs" />
+     <Compile Include="Assets\My\Script\Demo\ButtonEvent.cs" />
+     <Compile Include="Assets\My\Script\Demo\DownloadDemo.cs" />
      <Compile Include="Assets\My\Script\DownloadCore\Download.cs" />
      <Compile Include="Assets\My\Script\DownloadCore\DownloadHandlerRange.cs" />
      <Compile Include="Assets\My\Script\DownloadCore\DownloadManager.cs" />
      <Compile Include="Assets\My\Script\DownloadCore\DownloadManagerHelper.cs" />
      <Compile Include="Assets\My\Script\DownloadCore\FileTools.cs" />
-     <Compile Include="Assets\My\Script\Test\DownloadDemo.cs" />
-     <Compile Include="Assets\My\Script\Test\DownloadManagerDemo.cs" />
-     <Compile Include="Assets\My\Script\Test\JsonToolsTest.cs" />
-     <Compile Include="Assets\My\Script\UI\SceneManagerUI.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>D:/Software/Unity2017.2.0f3/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>
