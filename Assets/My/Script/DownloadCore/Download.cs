@@ -210,7 +210,6 @@ namespace DownloadFileNW
             SavePath = savePath;
             SaveName = saveName;
             IsDelete = isDelete;
-            HttpVerbType = httpVerbType;
             switch (httpVerbType)
             {
                 case HttpVerbType.kHttpVerbCREATE:
@@ -344,7 +343,6 @@ namespace DownloadFileNW
         private string URL = null;//下载文件的地址
         private string SavePath = null;//保存的路径
         private string SaveName = null;//保存的文件名
-        private HttpVerbType HttpVerbType;//发起Http请求的方法
         private string FilePath;//下载文件的路径
         private string TempFilePath;//下载临时文件的路径
         private bool IsDelete = false;//是否覆盖文件
@@ -354,7 +352,7 @@ namespace DownloadFileNW
         private bool isHttpError = false;//是否有Http连接错误
         private long httpErrorCode = -1;//出现Http错误时，该值代表着Http状态码
         private bool IsRange = true;//是否采用断点续传
-        private string Method;
+        private string Method;//发起Http请求的方法
         private DownloadHandlerRange DownloadHandlerRange = null;
         private bool isPause = false;
         private ulong LastDataSize;//以下用来某段时间的平均下载速度
@@ -468,7 +466,7 @@ namespace DownloadFileNW
                     {
                         FileTools.DeleteFile(FilePath);
                     }
-                    catch (System.IO.IOException e)
+                    catch (System.IO.IOException)
                     {
                         if (!IsSystemError)
                         {
