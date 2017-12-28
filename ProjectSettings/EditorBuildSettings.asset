@@ -4,4 +4,7 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/My/Scene/DownloadManagerUI.unity
+    guid: 404446f055992b644bb2174ca4be3b28

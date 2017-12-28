@@ -224,6 +224,10 @@ namespace DownloadFileNW
         /// <param name="content">要写入的数据</param>
         public static void WriteFileBytesAppend(string path, byte[] content)
         {
+            if (!DirectoryExists(GetDirectoryName(path)))
+            {
+                CreateDirectory(GetDirectoryName(path));
+            }
             FileStream stream=null;
             try
             {

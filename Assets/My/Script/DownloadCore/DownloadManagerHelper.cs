@@ -1,5 +1,4 @@
-﻿
-namespace DownloadFileNW
+﻿namespace DownloadFileNW
 {
     public class DownloadManagerHelper
     {
