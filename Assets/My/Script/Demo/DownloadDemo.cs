@@ -42,6 +42,7 @@ public class DownloadDemo : MonoBehaviour {
         {
             MsgText.text = "  ID:" + id + " 下载失败.  " + msg;
         }
+        Debug.Log(MsgText.text);
         Destroy(msgs[id]);
         msgs.Remove(id);
     }

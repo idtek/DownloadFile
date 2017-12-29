@@ -27,25 +27,7 @@ namespace DownloadFileNW
         {
             get
             {
-                if (IsDone || IsPause)
-                {
-                    return 0;
-                }
-                ulong nowDataSize = UnityWebRequest.downloadedBytes;
-                float nowTime = Time.time;
-                if (nowTime - LastTime == 0)
-                {
-                    return LastSpeed;
-                }
-                float speed = (nowDataSize - LastDataSize) / 1024 / (nowTime - LastTime);
-                if (double.IsPositiveInfinity(speed))
-                {
-                    return LastSpeed;
-                }
-                LastDataSize = nowDataSize;
-                LastTime = nowTime;
-                LastSpeed = speed;
-                return ((int)(speed * 100))/100;
+                return DownloadHandlerRange.Speed;
             }
         }
 
@@ -56,15 +38,7 @@ namespace DownloadFileNW
         {
             get
             {
-                if (IsDone || IsPause)
-                {
-                    return 1.0f;
-                }
-                if (UnityWebRequest.downloadProgress < 0)
-                {
-                    return 0;
-                }
-                return UnityWebRequest.downloadProgress;
+                return DownloadHandlerRange.DownloadProgress;
             }
         }
 
@@ -84,15 +58,11 @@ namespace DownloadFileNW
         /// Note:该属性只能在下载开始后的一帧之后开始调用，如果在刚刚调用StartDownload紧接着在同一帧调用该属性将返回
         /// Null，而且在下载已经完成后调用该属性将返回Null(也即是Completed事件执行完毕后)
         /// </summary>
-        public string FileSize
+        public long FileSize
         {
             get
             {
-                if (IsDone || IsPause)
-                {
-                    return null;
-                }
-                return UnityWebRequest.GetResponseHeader("Content-Length");
+                return fileSize;
             }
         }
 
@@ -201,7 +171,7 @@ namespace DownloadFileNW
         /// </summary>
         /// <param name="url">要下载的文件的URL</param>
         /// <param name="savePath">要将下载文件保存的路径</param>
-        /// <param name="isDelete">如果指定目录下存在同名文件，当该值为true时将删除同名文件，为false时则报错</param>
+        /// <param name="isDelete">如果指定目录下存在同名文件，当该值为true时将删除同名文件，为false时则删除本次下载的文件</param>
         /// <param name="httpVerbType">向服务器发起请求的方法，默认为Get</param>
         /// <param name="saveName">下载文件名称,不指定该值时,将根据HttpResponse头信息或URL来决定文件名称</param>
         public Download(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, string saveName = null)
@@ -249,60 +219,85 @@ namespace DownloadFileNW
             {
                 return;
             }
+            if (URL == null || "".Equals(URL))
+            {
+                IsSystemError = true;
+                SystemErrorMsg = "URL不能为空";
+                CompletedFinally();
+                return;
+            }
+            if (SavePath == null || "".Equals(SavePath))
+            {
+                IsSystemError = true;
+                SystemErrorMsg = "保存路径不能为空";
+                CompletedFinally();
+                return;
+            }
             UnityWebRequest = new UnityWebRequest(URL, Method);
             IsRange = isRange;
             //如果下载目录不存在，则创建目录及其父目录
             if (!FileTools.DirectoryExists(SavePath))
             {
-                FileTools.CreateDirectory(SavePath);
+                try
+                {
+                    FileTools.CreateDirectory(SavePath);
+                }
+                catch (System.Exception e)
+                {
+                    IsSystemError = true;
+                    SystemErrorMsg = "保存的路径有误";
+                    CompletedFinally();
+                    return;
+                }
             }
-            //如果没有设置文件名称，则通过URL来确定文件名称
-            TempFilePath = FileTools.PathCombine(SavePath, SaveName == null ? FileTools.GetFileName(URL).Split('?')[0] : SaveName);
-            TempFilePath += ".temp";
-            //Note:这里可能会抛出ArgumentException: Failed to create file,通常意味着你试图开着两个Download将同一个
-            //文件下载到同一个路径下，它们的名字冲突所引起的
-            DownloadHandler downloadHandler = null;
+            //如果没有设置文件名称，则通过URL来确定临时文件名称
+            string tempName = null;
             try
             {
-                if (IsRange)
-                {
-                    DownloadHandlerRange = new DownloadHandlerRange(TempFilePath, UnityWebRequest);
-                    downloadHandler = DownloadHandlerRange;
-                }
-                else
-                {
-                    DownloadHandlerFile downloadHandlerFile = new DownloadHandlerFile(TempFilePath);
-                    downloadHandlerFile.removeFileOnAbort = true;
-                    downloadHandler = downloadHandlerFile; ;
-                }
+                tempName = SaveName == null ? FileTools.GetFileName(URL).Split('?')[0] : SaveName;
             }
             catch (System.ArgumentException e)
             {
-                Debug.LogError(e.Message);
-                if (!IsSystemError)
+                //如果无法通过URL获取到下载名称,则通过HashCode来确定名称
+                tempName = ((uint)URL.GetHashCode()).ToString();
+            }
+            TempFilePath = FileTools.PathCombine(SavePath, tempName);
+            TempFilePath += ".temp";
+            try
+            {
+                if (!IsRange && FileTools.FileExists(TempFilePath))
                 {
-                    IsSystemError = true;
-                    SystemErrorMsg = "文件名冲突,指定路径的临时文件正在被其他程序占用";
+                    FileTools.DeleteFile(TempFilePath);
                 }
+            }
+            catch (System.Exception e)
+            {
+                IsSystemError = true;
+                SystemErrorMsg = e.Message;
                 CompletedFinally();
                 return;
+            }
+            try
+            {
+                DownloadHandlerRange = new DownloadHandlerRange(TempFilePath, UnityWebRequest);
+                DownloadHandlerRange.StartDownloadEvent += StartDownloadCallBack;
             }
             catch (System.IO.IOException e)
             {
-                Debug.LogError(e.Message);
-                if (!IsSystemError)
-                {
-                    IsSystemError = true;
-                    SystemErrorMsg = "文件名冲突,指定路径的临时文件正在被其他程序占用";
-                }
+                IsSystemError = true;
+                SystemErrorMsg = "文件正在被下载";
                 CompletedFinally();
                 return;
             }
-            UnityWebRequest.downloadHandler = downloadHandler;
+            catch (System.Exception e)
+            {
+                IsSystemError = true;
+                SystemErrorMsg = e.Message;
+                CompletedFinally();
+                return;
+            }
+            UnityWebRequest.downloadHandler = DownloadHandlerRange;
             UnityWebRequest.SendWebRequest().completed += Download_completed;
-            LastDataSize = 0;
-            LastTime = Time.time;
-            LastSpeed = 0.0f;
         }
 
         /// <summary>
@@ -316,7 +311,7 @@ namespace DownloadFileNW
                 IsPause = on;
                 Abort();
             }
-            else if(IsPause && !on)
+            else if (IsPause && !on)
             {
                 IsPause = on;
                 StartDownload(IsRange);
@@ -345,6 +340,7 @@ namespace DownloadFileNW
         private string SaveName = null;//保存的文件名
         private string FilePath;//下载文件的路径
         private string TempFilePath;//下载临时文件的路径
+        private long fileSize = 0;//文件的大小
         private bool IsDelete = false;//是否覆盖文件
         private bool Is_Done = false;//是否完成
         private bool isSystemError = false;//是否有系统错误
@@ -355,13 +351,17 @@ namespace DownloadFileNW
         private string Method;//发起Http请求的方法
         private DownloadHandlerRange DownloadHandlerRange = null;
         private bool isPause = false;
-        private ulong LastDataSize;//以下用来某段时间的平均下载速度
-        private float LastTime;
-        private float LastSpeed;
-
         #endregion
 
         #region 私有方法
+
+        /// <summary>
+        /// 得到响应头信息时被回调
+        /// </summary>
+        private void StartDownloadCallBack()
+        {
+            fileSize = DownloadHandlerRange.FileSize;
+        }
 
         /// <summary>
         /// Http连接结束时，判断是否出现Http错误或者系统错误，并且清除资源
@@ -370,34 +370,26 @@ namespace DownloadFileNW
         private void Download_completed(AsyncOperation obj)
         {
             bool isError = false;
-            try
+            if (!IsPause)
             {
-                if (!IsPause)
+                if (UnityWebRequest.isHttpError)
                 {
-                    if (UnityWebRequest.isHttpError)
-                    {
-                        isError = true;
-                        Debug.LogError("下载失败,Http错误,错误码:" + UnityWebRequest.responseCode.ToString());
-                        IsHttpError = true;
-                        HttpErrorCode = UnityWebRequest.responseCode;
-                    }
-                    if (UnityWebRequest.isNetworkError)
-                    {
-                        isError = true;
-                        Debug.LogError("下载失败,系统错误,错误信息:" + UnityWebRequest.error);
-                        IsSystemError = true;
-                        SystemErrorMsg = UnityWebRequest.error;
-                    }
+                    isError = true;
+                    IsHttpError = true;
+                    HttpErrorCode = UnityWebRequest.responseCode;
+                }
+                if (UnityWebRequest.isNetworkError)
+                {
+                    isError = true;
+                    IsSystemError = true;
+                    SystemErrorMsg = UnityWebRequest.error;
                 }
             }
-            finally
+            if (!isError && !IsPause)
             {
-                if (!isError && !IsPause)
-                {
-                    RenameFile();
-                }
-                CompletedFinally();
+                RenameFile();
             }
+            CompletedFinally();
         }
 
         /// <summary>
@@ -415,7 +407,6 @@ namespace DownloadFileNW
                 DownloadHandlerRange.Dispose();
             }
             UnityWebRequest = null;
-            DownloadHandlerRange = null;
             if (!IsPause)
             {
                 IsDone = true;
@@ -431,7 +422,10 @@ namespace DownloadFileNW
         /// </summary>
         private void Dispose()
         {
-            UnityWebRequest.Dispose();
+            if (UnityWebRequest != null)
+            {
+                UnityWebRequest.Dispose();
+            }
         }
 
         /// <summary>
@@ -473,7 +467,6 @@ namespace DownloadFileNW
                             IsSystemError = true;
                             SystemErrorMsg = "同路径出现同名文件,而且该文件被其他程序占用无法删除";
                         }
-                        Debug.LogError(SystemErrorMsg);
                         return;
                     }
                 }
@@ -483,9 +476,19 @@ namespace DownloadFileNW
                     {
                         IsSystemError = true;
                         SystemErrorMsg = "目标目录已经存在同名文件!";
-                        
                     }
-                    Debug.LogError(SystemErrorMsg);
+                    try
+                    {
+                        FileTools.DeleteFile(TempFilePath);
+                    }
+                    catch (System.Exception e)
+                    {
+                        if (!IsSystemError)
+                        {
+                            IsSystemError = true;
+                            SystemErrorMsg = e.Message;
+                        }
+                    }
                     return;
                 }
             }
@@ -496,7 +499,6 @@ namespace DownloadFileNW
                     IsSystemError = true;
                     SystemErrorMsg = "目标目录已经存在同名文件夹!";
                 }
-                Debug.LogError(SystemErrorMsg);
                 return;
             }
             FileTools.RenameFile(TempFilePath, fileName);

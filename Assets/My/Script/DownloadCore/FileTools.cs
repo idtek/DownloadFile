@@ -247,7 +247,20 @@ namespace DownloadFileNW
                     stream.Close();
                 }
             }
+        }
 
+        /// <summary>
+        /// 返回指定路径的文件的大小,文件不存在时返回0
+        /// </summary>
+        /// <param name="path">文件的路径</param>
+        /// <returns>指定文件的大小,不存在时返回0</returns>
+        public static long FileSize(string path)
+        {
+            if (FileExists(path))
+            {
+                return new FileInfo(path).Length;
+            }
+            return 0;
         }
     }
 }

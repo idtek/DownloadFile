@@ -17,11 +17,7 @@
 
         public static DownloadManager GetDonwloadManager()
         {
-            if (DownloadManager == null)
-            {
-                DownloadManager = new DownloadManager();
-            }
-            return DownloadManager;
+            return DownloadManager.Instance;
         }
 
     }
