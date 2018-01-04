@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 #if UNITY_5_4_OR_NEWER
 using UnityEngine.Networking;
 #else
@@ -15,18 +14,18 @@ namespace DownloadFileNW
 
     public class Download
     {
-#region 事件
+        #region 事件
         /// <summary>
         /// 下载结束时执行该事件，请注意，对Download对象的所有操作请在该事件里或该事件执行之前，
         /// 当该事件执行结束后，该Download对象资源将被释放，此时请不要在访问该Download对象
         /// </summary>
         public event System.Action<Download> Completed;
-#endregion
+        #endregion
 
-#region 属性
+        #region 属性
 
         /// <summary>
-        /// 该属性反应了“一段时间”内的平均下载速度(KB/S),这个“一段时间”的长度取决于你调用该属性的间隔(频率)
+        /// 下载速度,KB/S
         /// </summary>
         public float DownloadSpeed
         {
@@ -60,17 +59,19 @@ namespace DownloadFileNW
         }
 
         /// <summary>
-        /// Note:该属性只能在下载开始后的一帧之后开始调用，如果在刚刚调用StartDownload紧接着在同一帧调用该属性将返回
-        /// Null，而且在下载已经完成后调用该属性将返回Null(也即是Completed事件执行完毕后)
+        /// Note:下载文件的大小,当Http尚未响应时调用该属性将会返回0
         /// </summary>
         public long FileSize
         {
             get
             {
-                return fileSize;
+                return _fileSize;
+            }
+            private set
+            {
+                _fileSize = value;
             }
         }
-
         /// <summary>
         /// 判断下载是否已经完成，不管下载成功与否，只要该属性返回True就意味着下载已经完成，此时该对象就不应该再被使用
         /// </summary>
@@ -78,79 +79,41 @@ namespace DownloadFileNW
         {
             get
             {
-                return Is_Done;
+                return _isDone;
             }
-
             private set
             {
-                Is_Done = value;
+                _isDone = value;
             }
         }
-
         /// <summary>
-        /// 判断是否存在系统错误
-        /// </summary>
-        public bool IsSystemError
-        {
-            get
-            {
-                return isSystemError;
-            }
-
-            private set
-            {
-                isSystemError = value;
-            }
-        }
-
-        /// <summary>
-        /// 如果存在系统错误，则该属性返回系统错误的信息
+        /// 返回系统错误的信息,返回null代表没有错误
         /// </summary>
         public string SystemErrorMsg
         {
             get
             {
-                return systemErrorMsg;
+                return _systemErrorMsg;
             }
-
             private set
             {
-                systemErrorMsg = value;
+                _systemErrorMsg = value;
             }
         }
-
         /// <summary>
-        /// 判断是否存在Http连接错误
-        /// </summary>
-        public bool IsHttpError
-        {
-            get
-            {
-                return isHttpError;
-            }
-
-            private set
-            {
-                isHttpError = value;
-            }
-        }
-
-        /// <summary>
-        /// 如果存在Http连接错误,该属性返回Http状态码
+        /// 如果存在Http连接错误,该属性返回Http状态码,没有错误时返回-1
         /// </summary>
         public long HttpErrorCode
         {
             get
             {
-                return httpErrorCode;
+                return _httpErrorCode;
             }
-
             private set
             {
-                httpErrorCode = value;
+                _httpErrorCode = value;
             }
         }
-
         /// <summary>
         /// 当前下载是否处于暂停状态,暂停为true
         /// </summary>
@@ -158,18 +121,16 @@ namespace DownloadFileNW
         {
             get
             {
-                return isPause;
+                return _isPause;
             }
-
             private set
             {
-                isPause = value;
+                _isPause = value;
             }
         }
+        #endregion
 
-#endregion
-
-#region 构造方法
+        #region 构造方法
 
         /// <summary>
         /// 构造方法
@@ -210,9 +171,9 @@ namespace DownloadFileNW
             }
         }
 
-#endregion
+        #endregion
 
-#region 公共方法
+        #region 公共方法
 
         /// <summary>
         /// 开始下载文件
@@ -226,14 +187,12 @@ namespace DownloadFileNW
             }
             if (URL == null || "".Equals(URL))
             {
-                IsSystemError = true;
                 SystemErrorMsg = "URL不能为空";
                 CompletedFinally();
                 return;
             }
             if (SavePath == null || "".Equals(SavePath))
             {
-                IsSystemError = true;
                 SystemErrorMsg = "保存路径不能为空";
                 CompletedFinally();
                 return;
@@ -249,21 +208,18 @@ namespace DownloadFileNW
                 }
                 catch (System.UnauthorizedAccessException)
                 {
-                    IsSystemError = true;
                     SystemErrorMsg = "没有权限";
                     CompletedFinally();
                     return;
                 }
                 catch (System.IO.IOException)
                 {
-                    IsSystemError = true;
                     SystemErrorMsg = "目录路径有误";
                     CompletedFinally();
                     return;
                 }
                 catch (System.Exception e)
                 {
-                    IsSystemError = true;
                     SystemErrorMsg = e.Message;
                     CompletedFinally();
                     return;
@@ -291,7 +247,6 @@ namespace DownloadFileNW
             }
             catch (System.Exception e)
             {
-                IsSystemError = true;
                 SystemErrorMsg = e.Message;
                 CompletedFinally();
                 return;
@@ -303,14 +258,12 @@ namespace DownloadFileNW
             }
             catch (System.IO.IOException)
             {
-                IsSystemError = true;
                 SystemErrorMsg = "文件正在被下载";
                 CompletedFinally();
                 return;
             }
             catch (System.Exception e)
             {
-                IsSystemError = true;
                 SystemErrorMsg = e.Message;
                 CompletedFinally();
                 return;
@@ -354,9 +307,9 @@ namespace DownloadFileNW
             UnityWebRequest.Abort();
         }
 
-#endregion
+        #endregion
 
-#region 私有字段
+        #region 私有字段
 
         private UnityWebRequest UnityWebRequest = null;
         private string URL = null;//下载文件的地址
@@ -364,27 +317,25 @@ namespace DownloadFileNW
         private string SaveName = null;//保存的文件名
         private string FilePath;//下载文件的路径
         private string TempFilePath;//下载临时文件的路径
-        private long fileSize = 0;//文件的大小
         private bool IsDelete = false;//是否覆盖文件
-        private bool Is_Done = false;//是否完成
-        private bool isSystemError = false;//是否有系统错误
-        private string systemErrorMsg = "";//系统错误时的消息
-        private bool isHttpError = false;//是否有Http连接错误
-        private long httpErrorCode = -1;//出现Http错误时，该值代表着Http状态码
         private bool IsRange = true;//是否采用断点续传
         private string Method;//发起Http请求的方法
         private DownloadHandlerRange DownloadHandlerRange = null;
-        private bool isPause = false;
-#endregion
+        private long _fileSize = 0;
+        private bool _isDone = false;
+        private string _systemErrorMsg = null;
+        private long _httpErrorCode = -1;
+        private bool _isPause = false;
+        #endregion
 
-#region 私有方法
+        #region 私有方法
 
         /// <summary>
         /// 得到响应头信息时被回调
         /// </summary>
         private void StartDownloadCallBack()
         {
-            fileSize = DownloadHandlerRange.FileSize;
+            FileSize = DownloadHandlerRange.FileSize;
         }
 
         /// <summary>
@@ -400,13 +351,11 @@ namespace DownloadFileNW
                 if (UnityWebRequest.isHttpError)
                 {
                     isError = true;
-                    IsHttpError = true;
                     HttpErrorCode = UnityWebRequest.responseCode;
                 }
                 if (UnityWebRequest.isNetworkError)
                 {
                     isError = true;
-                    IsSystemError = true;
                     SystemErrorMsg = UnityWebRequest.error;
                 }
 #else
@@ -496,30 +445,21 @@ namespace DownloadFileNW
                     }
                     catch (System.IO.IOException)
                     {
-                        if (!IsSystemError)
-                        {
-                            IsSystemError = true;
-                            SystemErrorMsg = "同路径出现同名文件,而且该文件被其他程序占用无法删除";
-                        }
+                        SystemErrorMsg = "同路径出现同名文件,而且该文件被其他程序占用无法删除";
                         return;
                     }
                 }
                 else
                 {
-                    if (!IsSystemError)
-                    {
-                        IsSystemError = true;
-                        SystemErrorMsg = "目标目录已经存在同名文件!";
-                    }
+                    SystemErrorMsg = "目标目录已经存在同名文件!";
                     try
                     {
                         FileTools.DeleteFile(TempFilePath);
                     }
                     catch (System.Exception e)
                     {
-                        if (!IsSystemError)
+                        if (SystemErrorMsg == null)
                         {
-                            IsSystemError = true;
                             SystemErrorMsg = e.Message;
                         }
                     }
@@ -528,11 +468,7 @@ namespace DownloadFileNW
             }
             else if (FileTools.DirectoryExists(FilePath))
             {
-                if (!IsSystemError)
-                {
-                    IsSystemError = true;
-                    SystemErrorMsg = "目标目录已经存在同名文件夹!";
-                }
+                SystemErrorMsg = "目标目录已经存在同名文件夹!";
                 return;
             }
             FileTools.RenameFile(TempFilePath, fileName);

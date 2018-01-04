@@ -32,16 +32,15 @@ public class DownloadDemo : MonoBehaviour {
         msgs[id].transform.Find("StartOrPause").GetComponent<ButtonEvent>().id = id;
     }
 
-    void completed(int id)
+    void completed(int id,string errorMsg)
     {
-        string msg = DownloadManagerHelper.GetDonwloadManager().GetErrorMsg(id);
-        if (msg == null)
+        if (errorMsg == null)
         {
             MsgText.text = "  ID:" + id + " 下载完成";
         }
         else
         {
-            MsgText.text = "  ID:" + id + " 下载失败.  " + msg;
+            MsgText.text = "  ID:" + id + " 下载失败.  " + errorMsg;
         }
         Debug.Log(MsgText.text);
         Destroy(msgs[id]);

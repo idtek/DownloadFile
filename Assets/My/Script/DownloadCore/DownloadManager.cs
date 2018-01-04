@@ -13,11 +13,11 @@ namespace DownloadFileNW
         private Dictionary<int, Download> Downloads;//保存对Download对象的引用
         private Dictionary<int, string> Errors;//保存下载已经完成的，但是出现错误的Download对象的错误信息
         private Dictionary<int, DownloadStatus> DownloadQueue;//下载队列
-        private Dictionary<int, System.Action<int>> Completeds;
+        private Dictionary<int, System.Action<int,string>> Completeds;
         private int MaxCount = 5;//最大下载数量
         private int CurDonwloadCount = 0;//当前正在下载的数量
         private int id = 0;//对ID的计数
-        private bool isRange = true;
+        //private bool isRange = true;
         #endregion
 
         #region 属性
@@ -41,18 +41,7 @@ namespace DownloadFileNW
         /// <summary>
         /// 是否启用断点续传,默认为true
         /// </summary>
-        public bool IsRange
-        {
-            get
-            {
-                return isRange;
-            }
-
-            set
-            {
-                isRange = value;
-            }
-        }
+        public bool IsRange { get; set; }
 
         /// <summary>
         /// 得到DownloadManager实例
@@ -76,7 +65,7 @@ namespace DownloadFileNW
             Downloads = new Dictionary<int, Download>();
             Errors = new Dictionary<int, string>();
             DownloadQueue = new Dictionary<int, DownloadStatus>();
-            Completeds = new Dictionary<int, System.Action<int>>();
+            Completeds = new Dictionary<int, System.Action<int,string>>();
         }
         #endregion
 
@@ -87,10 +76,10 @@ namespace DownloadFileNW
         /// <param name="savePath">要下载文件保存的路径</param>
         /// <param name="isDelete">如果下载的文件已经存在,是否覆盖,默认不覆盖</param>
         /// <param name="httpVerbType">向服务器发起请求的方法，默认为Get</param>
-        /// <param name="completed">完成下载后回调事件</param>
+        /// <param name="completed">完成下载后回调事件,参数1:下载完成的ID值,参数2:下载的错误信息,null代表没有错误</param>
         /// <param name="saveName">下载文件名称,不指定该值时,将根据HttpResponse头信息或URL来决定文件名称</param>
         /// <returns>返回该下载任务的ID号</returns>
-        public int AddDownload(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, System.Action<int> completed = null, string saveName = null)
+        public int AddDownload(string url, string savePath, bool isDelete = false, HttpVerbType httpVerbType = HttpVerbType.kHttpVerbGET, System.Action<int,string> completed = null, string saveName = null)
         {
             id++;
             Download download = new Download(url, savePath, isDelete, httpVerbType, saveName);
@@ -295,11 +284,11 @@ namespace DownloadFileNW
         {
             int count = GetID(download);
             string msg = null;
-            if (download.IsHttpError)
+            if (download.HttpErrorCode!=-1)
             {
                 msg = "Http错误,错误状态码:" + download.HttpErrorCode.ToString();
             }
-            if (download.IsSystemError)
+            if (download.SystemErrorMsg!=null)
             {
                 msg = msg == null ? "系统错误，错误信息:" + download.SystemErrorMsg : msg + "|" + "系统错误，错误信息:" + download.SystemErrorMsg;
             }
@@ -316,7 +305,8 @@ namespace DownloadFileNW
         private void UserCompleted(Download download)
         {
             int id = GetID(download);
-            Completeds[id](id);
+            string errorMsg = GetErrorMsg(id);
+            Completeds[id](id,errorMsg);
             Completeds.Remove(id);
         }
 
