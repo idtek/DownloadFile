@@ -4,9 +4,9 @@ using UnityEngine.UI;
 using DownloadFileNW;
 
 public class DownloadDemo : MonoBehaviour {
-    public Text PathText;
+    public InputField PathText;
     public Text MsgText;
-    public Text UrlText;
+    public InputField UrlText;
     public GameObject MaxOption;
     public GameObject msgPrefabs;
     Dictionary<int, GameObject> msgs = new Dictionary<int, GameObject>();
@@ -16,6 +16,7 @@ public class DownloadDemo : MonoBehaviour {
     void Awake()
     {
         ChangeMaxCount();
+        PathText.text = Application.persistentDataPath;
     }
 
     public void ChangeMaxCount()

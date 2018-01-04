@@ -244,7 +244,7 @@ namespace DownloadFileNW
                 if (stream != null)
                 {
                     stream.Flush();
-                    stream.Close();
+                    stream.Dispose();
                 }
             }
         }

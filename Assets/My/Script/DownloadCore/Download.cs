@@ -1,5 +1,10 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
+#if UNITY_5_4_OR_NEWER
 using UnityEngine.Networking;
+#else
+using UnityEngine.Experimental.Networking;
+#endif
 
 namespace DownloadFileNW
 {
@@ -10,15 +15,15 @@ namespace DownloadFileNW
 
     public class Download
     {
-        #region 事件
+#region 事件
         /// <summary>
         /// 下载结束时执行该事件，请注意，对Download对象的所有操作请在该事件里或该事件执行之前，
         /// 当该事件执行结束后，该Download对象资源将被释放，此时请不要在访问该Download对象
         /// </summary>
         public event System.Action<Download> Completed;
-        #endregion
+#endregion
 
-        #region 属性
+#region 属性
 
         /// <summary>
         /// 该属性反应了“一段时间”内的平均下载速度(KB/S),这个“一段时间”的长度取决于你调用该属性的间隔(频率)
@@ -162,9 +167,9 @@ namespace DownloadFileNW
             }
         }
 
-        #endregion
+#endregion
 
-        #region 构造方法
+#region 构造方法
 
         /// <summary>
         /// 构造方法
@@ -205,9 +210,9 @@ namespace DownloadFileNW
             }
         }
 
-        #endregion
+#endregion
 
-        #region 公共方法
+#region 公共方法
 
         /// <summary>
         /// 开始下载文件
@@ -242,10 +247,24 @@ namespace DownloadFileNW
                 {
                     FileTools.CreateDirectory(SavePath);
                 }
+                catch (System.UnauthorizedAccessException)
+                {
+                    IsSystemError = true;
+                    SystemErrorMsg = "没有权限";
+                    CompletedFinally();
+                    return;
+                }
+                catch (System.IO.IOException)
+                {
+                    IsSystemError = true;
+                    SystemErrorMsg = "目录路径有误";
+                    CompletedFinally();
+                    return;
+                }
                 catch (System.Exception e)
                 {
                     IsSystemError = true;
-                    SystemErrorMsg = "保存的路径有误";
+                    SystemErrorMsg = e.Message;
                     CompletedFinally();
                     return;
                 }
@@ -256,7 +275,7 @@ namespace DownloadFileNW
             {
                 tempName = SaveName == null ? FileTools.GetFileName(URL).Split('?')[0] : SaveName;
             }
-            catch (System.ArgumentException e)
+            catch (System.ArgumentException)
             {
                 //如果无法通过URL获取到下载名称,则通过HashCode来确定名称
                 tempName = ((uint)URL.GetHashCode()).ToString();
@@ -282,7 +301,7 @@ namespace DownloadFileNW
                 DownloadHandlerRange = new DownloadHandlerRange(TempFilePath, UnityWebRequest);
                 DownloadHandlerRange.StartDownloadEvent += StartDownloadCallBack;
             }
-            catch (System.IO.IOException e)
+            catch (System.IO.IOException)
             {
                 IsSystemError = true;
                 SystemErrorMsg = "文件正在被下载";
@@ -297,7 +316,12 @@ namespace DownloadFileNW
                 return;
             }
             UnityWebRequest.downloadHandler = DownloadHandlerRange;
+#if UNITY_2017_2_OR_NEWER
             UnityWebRequest.SendWebRequest().completed += Download_completed;
+#else
+            UnityWebRequest.Send();
+            DownloadManagerHelper.GetDownloadManagerHelper().StartCoroutine(JudgmentCompleted());
+#endif
         }
 
         /// <summary>
@@ -330,9 +354,9 @@ namespace DownloadFileNW
             UnityWebRequest.Abort();
         }
 
-        #endregion
+#endregion
 
-        #region 私有字段
+#region 私有字段
 
         private UnityWebRequest UnityWebRequest = null;
         private string URL = null;//下载文件的地址
@@ -351,9 +375,9 @@ namespace DownloadFileNW
         private string Method;//发起Http请求的方法
         private DownloadHandlerRange DownloadHandlerRange = null;
         private bool isPause = false;
-        #endregion
+#endregion
 
-        #region 私有方法
+#region 私有方法
 
         /// <summary>
         /// 得到响应头信息时被回调
@@ -372,6 +396,7 @@ namespace DownloadFileNW
             bool isError = false;
             if (!IsPause)
             {
+#if UNITY_2017_1_OR_NEWER
                 if (UnityWebRequest.isHttpError)
                 {
                     isError = true;
@@ -384,6 +409,15 @@ namespace DownloadFileNW
                     IsSystemError = true;
                     SystemErrorMsg = UnityWebRequest.error;
                 }
+#else
+                if (UnityWebRequest.isError)
+                {
+                    isError = true;
+                    IsSystemError = true;
+                    SystemErrorMsg = UnityWebRequest.error;
+                }
+#endif
+
             }
             if (!isError && !IsPause)
             {
@@ -503,6 +537,17 @@ namespace DownloadFileNW
             }
             FileTools.RenameFile(TempFilePath, fileName);
         }
+
+#if !UNITY_2017_2_OR_NEWER
+        IEnumerator JudgmentCompleted()
+        {
+            while (!UnityWebRequest.isDone)
+            {
+                yield return 0;
+            }
+            Download_completed(null);
+        }
+#endif
         #endregion
     }
 }

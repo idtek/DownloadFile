@@ -1,24 +1,23 @@
-﻿namespace DownloadFileNW
+﻿using UnityEngine;
+
+namespace DownloadFileNW
 {
-    public class DownloadManagerHelper
+    public class DownloadManagerHelper:MonoBehaviour
     {
-        private static DownloadManager DownloadManager = null;
-        public static int MaxDownloadCount
-        {
-            get
-            {
-                return DownloadManager.MaxDownloadCount;
-            }
-            set
-            {
-                DownloadManager.MaxDownloadCount = value;
-            }
-        }
+        private static DownloadManagerHelper instance = null;
 
         public static DownloadManager GetDonwloadManager()
         {
             return DownloadManager.Instance;
         }
 
+        public static DownloadManagerHelper GetDownloadManagerHelper()
+        {
+            if (instance == null)
+            {
+                instance = (new GameObject("DownloadManagerHelper")).AddComponent<DownloadManagerHelper>();
+            }
+            return instance;
+        }
     }
 }

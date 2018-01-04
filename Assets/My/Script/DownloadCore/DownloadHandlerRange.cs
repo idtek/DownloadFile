@@ -67,7 +67,7 @@ namespace DownloadFileNW
             if (FileStream != null)
             {
                 FileStream.Flush();
-                FileStream.Close();
+                FileStream.Dispose();
                 FileStream = null;
             }
         }
@@ -84,7 +84,7 @@ namespace DownloadFileNW
             if (FileStream != null)
             {
                 FileStream.Flush();
-                FileStream.Close();
+                FileStream.Dispose();
                 FileStream = null;
             }
         }
@@ -159,7 +159,7 @@ namespace DownloadFileNW
             if (FileStream != null)
             {
                 FileStream.Flush();
-                FileStream.Close();
+                FileStream.Dispose();
                 FileStream = null;
             }
         }
